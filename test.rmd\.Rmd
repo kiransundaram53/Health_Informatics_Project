@@ -1,0 +1,22 @@
+---
+title: "healthinformatics_Kaggle_CervicalCancer"
+author: "Lizabeth Katsnelson"
+date: "10/23/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+library(tidyverse)
+
+file <- "/Users/lizabethkatsnelson/Documents/BMI/Fall 2018/Health Informatics/kag_risk_factors_cervical_cancer.csv"
+ 
+
+
+
+```
+
