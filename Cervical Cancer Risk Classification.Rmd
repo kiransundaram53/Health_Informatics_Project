@@ -29,3 +29,76 @@ ggplot(MyData, aes(Hormonal.Contraceptives)) +
 ggplot(MyData, aes(Age)) + 
     geom_bar(fill = "navy", color = "pink")
 ```
+
+```{r}
+ggplot(MyData, aes(Number.of.sexual.partners)) + 
+    geom_bar(fill = "navy", color = "pink")
+```
+
+```{r}
+ggplot(MyData, aes(First.sexual.intercourse)) + 
+    geom_bar(fill = "navy", color = "pink")
+```
+
+```{r}
+ggplot(MyData, aes(Num.of.pregnancies)) + 
+    geom_bar(fill = "navy", color = "pink")
+```
+
+```{r}
+ggplot(MyData, aes(STDs)) + 
+    geom_bar(fill = "navy", color = "pink")
+```
+
+```{r}
+# filter those who have had an STD
+STD <- MyData %>% filter(STDs == "1")
+
+# filter specific STDS
+HERPES <- MyData %>% filter(STDs.genital.herpes == "1")
+CONDY <- MyData %>% filter(STDs.condylomatosis == "1")
+CERVCONDY <- MyData %>% filter(STDs.cervical.condylomatosis == "1")
+VAGCONDY <- MyData %>% filter(STDs.vaginal.condylomatosis == "1")
+VULCONDY <- MyData %>% filter(STDs.vulvo.perineal.condylomatosis == "1")
+SYPHILIS <- MyData %>% filter(STDs.syphilis == "1")
+PELVINF <- MyData %>% filter(STDs.pelvic.inflammatory.disease == "1")
+MOLUSCONT <- MyData %>% filter(STDs.molluscum.contagiosum == "1")
+AIDS <- MyData %>% filter(STDs.AIDS == "1")
+HIV <- MyData %>% filter(STDs.HIV == "1")
+HEPB <- MyData %>% filter(STDs.Hepatitis.B == "1")
+HPV <- MyData %>% filter(STDs.HPV == "1")
+```
+
+
+```{r}
+STD %>%
+  gather(-y_value, key = "some_var_name", value = "Count") %>%
+  ggplot(aes(x = some_value_name)) +
+    geom_point() +
+    facet_wrap(~ some_var_name, scales = "free")
+```
+
+```{r}
+# filter those who have had an STD
+STD <- MyData %>% filter(STDs == "1")
+
+# filter specific STDS
+HERPES <- MyData %>% filter(STDs.genital.herpes == "1")
+CONDY <- MyData %>% filter(STDs.condylomatosis == "1")
+CERVCONDY <- MyData %>% filter(STDs.cervical.condylomatosis == "1")
+VAGCONDY <- MyData %>% filter(STDs.vaginal.condylomatosis == "1")
+VULCONDY <- MyData %>% filter(STDs.vulvo.perineal.condylomatosis == "1")
+SYPHILIS <- MyData %>% filter(STDs.syphilis == "1")
+PELVINF <- MyData %>% filter(STDs.pelvic.inflammatory.disease == "1")
+MOLUSCONT <- MyData %>% filter(STDs.molluscum.contagiosum == "1")
+AIDS <- MyData %>% filter(STDs.AIDS == "1")
+HIV <- MyData %>% filter(STDs.HIV == "1")
+HEPB <- MyData %>% filter(STDs.Hepatitis.B == "1")
+HPV <- MyData %>% filter(STDs.HPV == "1")
+```
+
+
+
+
+
+
