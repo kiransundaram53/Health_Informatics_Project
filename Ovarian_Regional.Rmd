@@ -1,0 +1,189 @@
+---
+title: "Ovarian_Regional"
+author: "Kiran Sundaram"
+date: "11/1/2018"
+output: html_document
+---
+
+```{r}
+# load necessary libraries
+library(tidyverse)
+library(ggfortify)
+library(dplyr)
+library(caret)
+library(cluster)
+library(pROC)
+```
+
+```{r}
+# read in data
+ovary <- read.csv(file="ovary_data_chemo.csv", header=TRUE, sep=",")
+as.tibble(ovary)
+```
+```{r}
+# change survival months to numeric
+ovary$Survival.months <- as.numeric(ovary$Survival.months)
+```
+
+```{r}
+# filter unnecessary columns
+ovary$Summary.stage.2000..1998.. <- NULL
+ovary$RX.Summ..Surg.Prim.Site..1998.. <- NULL
+ovary$RX.Summ..Scope.Reg.LN.Sur..2003.. <- NULL
+ovary$Scope.of.reg.lymph.nd.surg..1998.2002. <- NULL
+ovary$RX.Summ..Reg.LN.Examined..1998.2002. <- NULL
+ovary$Surgery.of.oth.reg.dis.sites..1998.2002. <- NULL
+ovary$Radiation.to.Brain.or.CNS..1988.1997. <- NULL
+ovary$CS.tumor.size..2004.. <- NULL
+ovary$Survival.months.flag <- NULL
+ovary$RX.Summ..Surg.Oth.Reg.Dis..2003.. <- NULL
+# remove categorical variables with more than 53 categories
+ovary$Patient.ID <- NULL
+ovary$Year.of.diagnosis <- NULL
+ovary$County <- NULL
+ovary$Year.of.birth <- NULL
+ovary$Year.of.birthRecode.ICD.O.2.to.10 <- NULL
+ovary$State.county <- NULL
+ovary$In.research.data <- NULL
+ovary$Origin.recode.NHIA..Hispanic..Non.Hisp. <- NULL
+ovary$Site.recode.ICD.O.3.WHO.2008 <- NULL
+ovary$Behavior.recode.for.analysis <- NULL
+ovary$ICCC.site.recode.ICD.O.3.WHO.2008 <- NULL
+ovary$Histologic.Type.ICD.O.3 <- NULL
+ovary$Behavior.code.ICD.O.3 <- NULL
+ovary$ICD.O.3.Hist.behav <- NULL
+ovary$ICD.O.3.Hist.behav..malignant <- NULL
+ovary$Histology.recode...broad.groupings <- NULL
+ovary$Site.specific.surgery..1973.1997.varying.detail.by.year.and.site. <- NULL
+ovary$SEER.cause.specific.death.classification <- NULL
+ovary$SEER.other.cause.of.death.classification <- NULL
+ovary$Type.of.follow.up.expected <- NULL
+ovary$Behavior.code.ICD.O.2 <- NULL
+ovary$Histology.ICD.O.2 <- NULL
+ovary$Recode.ICD.O.2.to.9 <- NULL
+ovary$Race.recode..W..B..AI..API. <- NULL
+ovary$SEER.registry <- NULL
+ovary$Grade <- NULL
+ovary$Recode.ICD.O.2.to.10 <- NULL
+ovary$COD.to.site.recode <- NULL
+ovary$COD.to.site.rec.KM <- NULL
+ovary$Month.of.diagnosis.recode <- NULL
+```
+
+```{r}
+# create new dataframe with just radiation patients
+ovary_rad <- ovary[- grep("No radiation and/or cancer-directed surgery", ovary$Radiation.sequence.with.surgery),]
+# view radiation data
+as.tibble(ovary_rad)
+```
+
+```{r}
+# filter dataframe with no radiation columns
+ovary$Radiation <- NULL
+ovary$Radiation.sequence.with.surgery <- NULL
+ovary$Radiation.to.Brain.or.CNS..1988.1997. <- NULL
+
+# add survivor column to set 
+ovary$status <- ifelse(ovary$Survival.months >= 60, 'SURVIVED', 
+                                ifelse(ovary$Survival.months < 60, 'NOT_SURVIVED', NA))
+# change STATUS to factor
+ovary$status <- as.factor(ovary$status)
+
+# omit NA
+ovary <- na.omit(ovary)
+```
+
+###### General Linear Model on Ovary Data
+```{r}
+# split into training and testing
+train_size <- floor(0.2 * nrow(ovary))
+set.seed(543)
+train_pos <- sample(seq_len(nrow(ovary)), size = train_size)
+train_classifier <- ovary[train_pos, ]
+test_classifier <- ovary[-train_pos, ]
+dim(train_classifier)
+dim(test_classifier)
+```
+
+```{r}
+# only look at two classes 
+train_classifier_log <- train_classifier[c(which(train_classifier$status == "SURVIVED"), which(train_classifier$status == "NOT_SURVIVED")),]
+test_classifier_log <- test_classifier[c(which(test_classifier$status == "SURVIVED"), which(test_classifier$status == "NOT_SURVIVED")),]
+train_classifier_log$status <- factor(train_classifier_log$status)
+test_classifier_log$status <- factor(test_classifier_log$status)
+ctrl <- trainControl(method = "repeatedcv", repeats = 15,classProbs = T, savePredictions = T)
+# create model
+# predict class based on other variables
+# pull all columns to predict class
+logistic_regression <- train(status ~ ., data = train_classifier_log, method = "glm", family= "binomial", trControl = ctrl)
+```
+
+```{r}
+# summarize logistic regression
+logistic_regression
+summary(logistic_regression)
+```
+
+```{r}
+# visualize on ROC Curve
+plot(x = roc(predictor = logistic_regression$pred$SURVIVED, response = logistic_regression$pred$obs)$specificities, y = roc(predictor = logistic_regression$pred$SURVIVED, response = logistic_regression$pred$obs)$sensitivities, col= "blue", xlim = c(1, 0), type ="l", main = "Predicting Survivability in Ovarian Cancer Patients", ylab = "Sensitivity", xlab = "Specificity")
+# AUC is 0.9962
+legend("bottomright", legend = paste("Survivor Curve", roc(predictor = logistic_regression$pred$SURVIVED, response = logistic_regression$pred$obs)$auc, sep = ""), col = c("blue"), fill = c("blue"))
+```
+
+```{r}
+# test independent set
+# predict using Diabetes
+logistic_regression_predict_ovary <- predict(logistic_regression, newdata = test_classifier_log)
+# confusion matrix
+# accuracy is 99.92%
+confusionMatrix(logistic_regression_predict_ovary, reference = test_classifier_log$status)
+```
+
+
+###### General Linear Model on Ovary Radiation Data
+```{r}
+# split into training and testing
+train_size <- floor(0.2 * nrow(ovary_rad))
+set.seed(543)
+train_pos_rad <- sample(seq_len(nrow(ovary_rad)), size = train_size)
+train_classifier_rad <- ovary_rad[train_pos_rad, ]
+test_classifier_rad <- ovary_rad[-train_pos_rad, ]
+dim(train_classifier_rad)
+dim(test_classifier_rad)
+```
+
+```{r}
+# only look at two classes 
+train_classifier_log_rad <- train_classifier_rad[c(which(train_classifier_rad$status == "SURVIVED"), which(train_classifier_rad$status == "NOT_SURVIVED")),]
+test_classifier_log_rad <- test_classifier_rad[c(which(test_classifier_rad$status == "SURVIVED"), which(test_classifier_rad$status == "NOT_SURVIVED")),]
+train_classifier_log_rad$status <- factor(train_classifier_log_rad$status)
+test_classifier_log_rad$status <- factor(test_classifier_log_rad$status)
+ctrl <- trainControl(method = "repeatedcv", repeats = 15,classProbs = T, savePredictions = T)
+# create model
+# predict class based on other variables
+# pull all columns to predict class
+logistic_regression_rad <- train(status ~ ., data = train_classifier_log_rad, method = "glm", family= "binomial", trControl = ctrl)
+```
+
+```{r}
+# summarize logistic regression
+logistic_regression_rad
+summary(logistic_regression_rad)
+```
+
+```{r}
+# visualize on ROC Curve
+plot(x = roc(predictor = logistic_regression_rad$pred$SURVIVED, response = logistic_regression_rad$pred$obs)$specificities, y = roc(predictor = logistic_regression_rad$pred$SURVIVED, response = logistic_regression_rad$pred$obs)$sensitivities, col= "blue", xlim = c(1, 0), type ="l", main = "Predicting Survivability in Ovarian Cancer Patients with Radiation Treatment", ylab = "Sensitivity", xlab = "Specificity")
+# AUC is 0.9962
+legend("bottomright", legend = paste("Survivor Curve", roc(predictor = logistic_regression$pred$SURVIVED, response = logistic_regression$pred$obs)$auc, sep = ""), col = c("blue"), fill = c("blue"))
+```
+
+```{r}
+# test independent set
+# predict using Diabetes
+logistic_regression_predict_ovary <- predict(logistic_regression, newdata = test_classifier_log)
+# confusion matrix
+# accuracy is 99.92%
+confusionMatrix(logistic_regression_predict_ovary, reference = test_classifier_log$status)
+```
