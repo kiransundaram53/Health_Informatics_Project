@@ -1,0 +1,280 @@
+---
+title: "SEER ovarian cancer"
+author: "Lizabeth Katsnelson"
+date: "10/24/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE} 
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(ggfortify)
+library(caret)
+library(cluster)
+library(pROC)
+library(randomForest)
+library(tree)
+library(caret)
+library(gbm)
+
+```
+
+### Clean Data
+```{r}
+
+# open data frame
+data <-  read.csv(file="ovary_data_chemo.csv", header=TRUE, sep=",")
+
+# change survival months to integer
+data$Survival.months <- as.integer(data$Survival.months)
+
+colnames(data)[which(names(data) == "Age.recode.with..1.year.olds")] <- "Agegroup"
+colnames(data)[which(names(data) == "Race.recode..W..B..AI..API.")] <- "Race"
+colnames(data)[which(names(data) == "Histology.recode...broad.groupings")] <- "Histology.Groups"
+colnames(data)[which(names(data) == "Chemotherapy.recode..yes..no.unk.")] <- "Chemotherapy"
+colnames(data)[which(names(data) == "Vital.status.recode..study.cutoff.used.")] <- "Vital.Status"
+
+
+
+# change Race to character to add Hispanic labels - anyone who is labeled "white" or "unknown" for race and "hispanic" in origin recode column will be switched to "hispanic" in race column
+data$Race <- as.character(data$Race)
+data <- within(data, Race[Race == 'White' & Origin.recode.NHIA..Hispanic..Non.Hisp. == 'Spanish-Hispanic-Latino'] <- 'Spanish-Hispanic-Latino')
+data <- within(data, Race[Race == 'Unknown' & Origin.recode.NHIA..Hispanic..Non.Hisp. == 'Spanish-Hispanic-Latino'] <- 'Spanish-Hispanic-Latino')
+data$Race <- as.factor(data$Race)
+
+# remove unwanted columns
+data <- dplyr::select(data, -Patient.ID,
+                      -SEER.registry,
+                      -In.research.data,
+                      -Origin.recode.NHIA..Hispanic..Non.Hisp.,
+                      -Site.recode.ICD.O.3.WHO.2008,
+                      -Behavior.recode.for.analysis,
+                      -ICCC.site.recode.ICD.O.3.WHO.2008,
+                      -Histologic.Type.ICD.O.3, 
+                      -Behavior.code.ICD.O.3,
+                      -ICD.O.3.Hist.behav..malignant,
+                      -Summary.stage.2000..1998..,
+                      -RX.Summ..Surg.Prim.Site..1998..,
+                      -RX.Summ..Scope.Reg.LN.Sur..2003..,
+                      -RX.Summ..Surg.Oth.Reg.Dis..2003..,
+                      -Reason.no.cancer.directed.surgery,
+                      -Scope.of.reg.lymph.nd.surg..1998.2002.,
+                      -RX.Summ..Reg.LN.Examined..1998.2002.,
+                      -Surgery.of.oth.reg.dis.sites..1998.2002.,
+                      -Site.specific.surgery..1973.1997.varying.detail.by.year.and.site.,
+                      -Radiation.to.Brain.or.CNS..1988.1997., 
+                      -CS.tumor.size..2004..,
+                      -COD.to.site.recode,
+                      -SEER.cause.specific.death.classification,
+                      -SEER.other.cause.of.death.classification,
+                      -Survival.months.flag,
+                      -COD.to.site.rec.KM,
+                      -Type.of.follow.up.expected,
+                      -Behavior.code.ICD.O.2,
+                      -Histology.ICD.O.2, 
+                      -Recode.ICD.O.2.to.9, 
+                      -Recode.ICD.O.2.to.10, 
+                      -Month.of.diagnosis.recode,
+                      -State.county,
+                      -ICD.O.3.Hist.behav)
+
+
+# add 5 year survival variable column to set - yes or no
+data$Five.Year.Survival <- ifelse(data$Survival.months >= 60, 'Yes', 
+                                ifelse(data$Survival.months < 60, 'No', NA))
+# change to factor
+data$Five.Year.Survival <- as.factor(data$Five.Year.Survival)
+
+# omit NA
+data <- na.omit(data)
+
+
+as.tibble(data) 
+```
+
+colnames(data)
+Agegroup + Year.of.diagnosis + County + Race + State + Grade + Laterality + Diagnostic.Confirmation + 
+Histology.Groups + SEER.historic.stage.A + Radiation.sequence.with.surgery + Radiation + Chemotherapy + 
+Vital.Status + Year.of.birth + Month.of.diagnosis + Five.Year.Survival
+
+
+
+```{r}
+
+# get rid of survival months column (it is essentially the same as our classifier)
+data <- dplyr::select(data, -Survival.months)
+
+train_size <- floor(0.75 * nrow(data))
+set.seed(12345)
+train_pos <- sample(seq_len(nrow(data)), size = train_size)
+
+train_classification <- data[train_pos, ]
+test_classification <- data[-train_pos, ]
+
+ctrl <- trainControl(method = "repeatedcv", repeats = 15,classProbs = T, savePredictions = T)
+dim(train_classification)
+dim(test_classification)
+```
+
+
+### Random Forest
+```{r}
+set.seed(343434)
+
+RF_classification <- randomForest(Five.Year.Survival ~ ., data=train_classification, importance = TRUE, oob.times = 15, confusion = TRUE)
+
+RF_classification
+```
+
+
+Visualize OOB error rate
+```{r}
+plot(RF_classification$err.rate[,1], type = "l", ylab = "Error rate", xlab = "Number of trees")
+```
+
+Visualize importance of features
+```{r}
+importance(RF_classification)
+```
+
+Predict using test set
+```{r}
+test_RF_classification <- predict (RF_classification , newdata = test_classification)
+
+confusionMatrix(test_RF_classification, reference = test_classification$Five.Year.Survival)
+```
+
+
+
+### Logistic Regression 
+```{r}
+set.seed(146)
+logistic_regression <- train(Five.Year.Survival ~ ., data = train_classification, method = "glm", family= "binomial", trControl = ctrl)
+logistic_regression
+```
+
+```{r}
+summary(logistic_regression)
+```
+
+```{r}
+plot(x = roc(predictor = logistic_regression$pred$Yes,
+             response = logistic_regression$pred$obs)$specificities,
+     y = roc(predictor = logistic_regression$pred$Yes, 
+             response = logistic_regression$pred$obs)$sensitivities, 
+     col= "red", xlim = c(1, 0), type ="l", ylab = "Sensitivity", xlab = "Specificity")
+
+legend("bottomright", legend = paste("Diabetes Prediction", roc(predictor = logistic_regression$pred$Yes, response = logistic_regression$pred$obs)$auc, sep = ""), col = c("red"), fill = c("red"))
+```
+
+```{r}
+set.seed(3636)
+logistic_regression_predict <- predict(logistic_regression, newdata = test_classification)
+confusionMatrix(logistic_regression_predict, reference = test_classification$Five.Year.Survival)
+```
+
+
+
+__Radial SVM__
+
+```{r}
+set.seed(123456)
+ctrl <- trainControl(method = "repeatedcv", repeats = 5,classProbs = T, savePredictions = T)
+svm_rad <- train(Five.Year.Survival ~ ., data = train_classification, method = "svmRadial", tuneLength = 10, trControl = ctrl)
+```
+
+```{r}
+svm_rad
+```
+
+```{r}
+roc(predictor = svm_rad$pred$Yes, response = svm_rad$pred$obs)$auc
+```
+
+```{r}
+plot(x = roc(predictor = svm_rad$pred$Yes, response = svm_rad$pred$obs)$specificities, y = roc(predictor = svm_rad$pred$Yes, response = svm_rad$pred$obs)$sensitivities, col= "red", xlim = c(1, 0), type ="l", ylab = "Sensitivity", xlab = "Specificity")
+```
+
+```{r}
+svm_test <- predict(svm_rad, newdata = test_classification)
+confusionMatrix(svm_test, reference = test_classification$Five.Year.Survival)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r, EDA}
+
+data %>%
+  count(Five.Year.Survival)
+
+data %>%
+  count(Histology.Groups)
+
+ggplot(data = data) + 
+  geom_histogram(mapping = aes(Histologic.Type.ICD.O.3))
+ggplot(data = data) + 
+  coord_flip() +
+  geom_bar(mapping = aes(Laterality, fill = Vital.Status)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+
+ggplot(data = data) +
+  geom_bar(mapping = aes(x = Agegroup, fill = Vital.Status)) + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+
+ggplot(data = data) +
+  coord_flip() +
+  geom_bar(mapping = aes(x = Race, fill = Vital.Status)) + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+
+ggplot(data = data) +
+  coord_flip() +
+  geom_bar(mapping = aes(x = Diagnostic.Confirmation, fill = Vital.Status)) + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+
+ggplot(data = data) +
+  coord_flip() +
+  theme(legend.position = 'none') +
+  geom_bar(mapping = aes(x = Radiation.sequence.with.surgery, fill = Vital.Status)) + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
+
+data %>%
+  count(Radiation.sequence.with.surgery)
+
+ggplot(data = data) +
+    geom_bar(mapping = aes(x = Chemotherapy, fill = Vital.Status)) 
+
+ggplot(data = data) +
+  geom_bar(mapping = aes(x = Five.Year.Survival, fill = Chemotherapy))
+
+```
+
+
+
+
+
+
+
+
+
+
+
