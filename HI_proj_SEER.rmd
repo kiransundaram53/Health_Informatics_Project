@@ -93,7 +93,6 @@ data$Five.Year.Survival <- as.factor(data$Five.Year.Survival)
 # omit NA
 data <- na.omit(data)
 
-
 as.tibble(data) 
 ```
 
@@ -101,6 +100,39 @@ colnames(data)
 Agegroup + Year.of.diagnosis + County + Race + State + Grade + Laterality + Diagnostic.Confirmation + 
 Histology.Groups + SEER.historic.stage.A + Radiation.sequence.with.surgery + Radiation + Chemotherapy + 
 Vital.Status + Year.of.birth + Month.of.diagnosis + Five.Year.Survival
+
+Take out histology reports other than:
+8010-8049: epithelial neoplasms, NOS
+8050-8089: squamous cell neoplasms
+8140-8389: adenomas and adenocarcinomas
+8440-8499: cystic, mucinous and serous neoplasms
+
+```{r}
+
+data$Histology.Groups <- as.character(data$Histology.Groups)
+
+data$Histology.Groups <- ifelse(data$Histology.Groups == '8010-8049: epithelial neoplasms, NOS' | data$Histology.Groups == '8050-8089: squamous cell neoplasms' | data$Histology.Groups == '8140-8389: adenomas and adenocarcinomas' | data$Histology.Groups == '8440-8499: cystic, mucinous and serous neoplasms', data$Histology.Groups, NA)
+as.tibble(data$Histology.Groups)
+
+#Histology.Groups[Histology.Groups == '8010-8049: epithelial neoplasms, NOS' | Histology.Groups == '8050-8089: squamous cell neoplasms' | Histology.Groups == '8140-8389: adenomas and adenocarcinomas' | Histology.Groups == '8440-8499: cystic, mucinous and serous neoplasms'] <- 'NA')
+
+data$Histology.Groups <- as.factor(data$Histology.Groups)
+
+as.tibble(data$Histology.Groups)
+
+data %>%
+  count(Histology.Groups)
+```
+
+```{r}
+# omit NA rows (should get rid of 16,269 rows becuase we dont want most of the histology groups)
+data <- na.omit(data)
+
+as.tibble(data) 
+```
+
+
+
 
 
 
@@ -267,6 +299,9 @@ ggplot(data = data) +
   geom_bar(mapping = aes(x = Five.Year.Survival, fill = Chemotherapy))
 
 ```
+
+
+
 
 
 
