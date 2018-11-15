@@ -20,7 +20,9 @@ library(pROC)
 library(randomForest)
 library(tree)
 library(caret)
-library(gbm)
+library(gbm) 
+library(PresenceAbsence)
+library(glmnet)
 
 ```
 
@@ -176,68 +178,86 @@ importance(RF_classification)
 
 Predict using test set
 ```{r}
-test_RF_classification <- predict (RF_classification , newdata = test_classification)
+test_RF_classification <- predict(RF_classification , newdata = test_classification)
 
-confusionMatrix(test_RF_classification, reference = test_classification$Five.Year.Survival)
-```
-
-
-
-### Logistic Regression 
-```{r}
-set.seed(146)
-logistic_regression <- train(Five.Year.Survival ~ ., data = train_classification, method = "glm", family= "binomial", trControl = ctrl)
-logistic_regression
+cm_rf <-  table(pred=test_RF_classification, true = test_classification$Five.Year.Survival)
+cm_rf
 ```
 
 ```{r}
-summary(logistic_regression)
+pcc(cm_rf, st.dev=TRUE)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+### Classification Tree
+
+```{r}
+train_tree <- floor(0.2 * nrow(data))
+set.seed(12345)
+train_pos_tree <- sample(seq_len(nrow(data)), size = train_tree)
+
+train_class_tree <- data[train_pos_tree, ]
+test_class_tree <- data[-train_pos_tree, ]
+
+dim(train_class_tree)
+dim(test_class_tree)
+```
+
+
+
+
+```{r}
+set.seed(12345)
+classification_tree <- tree(Five.Year.Survival ~ Agegroup + Year.of.diagnosis + State + Grade + Laterality + Diagnostic.Confirmation + Histology.Groups + SEER.historic.stage.A + Chemotherapy + Month.of.diagnosis, data = train_class_tree, split = "gini")
+plot(classification_tree)
+text(classification_tree,cex=0.45)
 ```
 
 ```{r}
-plot(x = roc(predictor = logistic_regression$pred$Yes,
-             response = logistic_regression$pred$obs)$specificities,
-     y = roc(predictor = logistic_regression$pred$Yes, 
-             response = logistic_regression$pred$obs)$sensitivities, 
-     col= "red", xlim = c(1, 0), type ="l", ylab = "Sensitivity", xlab = "Specificity")
+summary(classification_tree)
+```
 
-legend("bottomright", legend = paste("Diabetes Prediction", roc(predictor = logistic_regression$pred$Yes, response = logistic_regression$pred$obs)$auc, sep = ""), col = c("red"), fill = c("red"))
+
+```{r}
+classification_test <- predict(classification_tree, newdata = test_class_tree, type = "class")
+
+confusionMatrix(classification_test, reference = test_class_tree$Five.Year.Survival)
 ```
 
 ```{r}
-set.seed(3636)
-logistic_regression_predict <- predict(logistic_regression, newdata = test_classification)
-confusionMatrix(logistic_regression_predict, reference = test_classification$Five.Year.Survival)
+fit_classification_tree <- cv.tree(classification_tree,FUN=prune.misclass, K = 15)
 ```
 
-
-
-__Radial SVM__
 
 ```{r}
-set.seed(123456)
-ctrl <- trainControl(method = "repeatedcv", repeats = 5,classProbs = T, savePredictions = T)
-svm_rad <- train(Five.Year.Survival ~ ., data = train_classification, method = "svmRadial", tuneLength = 10, trControl = ctrl)
+fit_classification_tree
 ```
+
 
 ```{r}
-svm_rad
+prune_classification_tree=prune.misclass(classification_tree, best = 2)
+
+plot(prune_classification_tree)
+text(prune_classification_tree,cex=0.45)
 ```
+
 
 ```{r}
-roc(predictor = svm_rad$pred$Yes, response = svm_rad$pred$obs)$auc
+classification_test_pruned <- predict(prune_classification_tree, newdata = test_classification, type = "class")
+
+confusionMatrix(classification_test_pruned, reference = test_classification$Five.Year.Survival)
 ```
-
-```{r}
-plot(x = roc(predictor = svm_rad$pred$Yes, response = svm_rad$pred$obs)$specificities, y = roc(predictor = svm_rad$pred$Yes, response = svm_rad$pred$obs)$sensitivities, col= "red", xlim = c(1, 0), type ="l", ylab = "Sensitivity", xlab = "Specificity")
-```
-
-```{r}
-svm_test <- predict(svm_rad, newdata = test_classification)
-confusionMatrix(svm_test, reference = test_classification$Five.Year.Survival)
-```
-
-
 
 
 
