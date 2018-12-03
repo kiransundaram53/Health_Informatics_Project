@@ -72,16 +72,241 @@ data <- dplyr::select(data, -Patient.ID,
                       -Behavior.code.ICD.O.2,
                       -Histology.ICD.O.2, 
                       -Recode.ICD.O.2.to.9, 
-                      -Recode.ICD.O.2.to.10, 
+                      -Recode.ICD.O.2.to.10,
                       -Month.of.diagnosis.recode,
-                      -State.county,
                       -ICD.O.3.Hist.behav)
 # add 5 year survival variable column to set - yes or no
 data$Five.Year.Survival <- ifelse(data$Survival.months >= 60, 'Yes', 
                                 ifelse(data$Survival.months < 60, 'No', NA))
 # change to factor
 data$Five.Year.Survival <- as.factor(data$Five.Year.Survival)
+# change to character
+data$State.county <- as.character(data$State.county)
 # omit NA
+data <- na.omit(data)
+as.tibble(data) 
+```
+
+```{r}
+# edit county variable
+data$State.county <- substr(data$State.county,1,nchar(data$State.county)-15)
+as.tibble(data)
+```
+
+```{r}
+# open alaska data frame
+alaska <-  read.csv(file="alaska.csv", header=TRUE, sep=",")
+colnames(alaska)[which(names(alaska) == "total_est_pct3")] <- "poverty_percent"
+colnames(alaska)[which(names(alaska) == "county2")] <- "State.county"
+alaska$State.county <- paste("AK: ", alaska$State.county)
+as.tibble(alaska)
+```
+
+```{r}
+# open california data frame
+cali <-  read.csv(file="cali.csv", header=TRUE, sep=",")
+colnames(cali)[which(names(cali) == "total_est_pct3")] <- "poverty_percent"
+colnames(cali)[which(names(cali) == "county2")] <- "State.county"
+cali$State.county <- paste("CA: ", cali$State.county)
+as.tibble(cali)
+```
+
+```{r}
+# open connecticut data frame
+connecticut <-  read.csv(file="connecticut.csv", header=TRUE, sep=",")
+colnames(connecticut)[which(names(connecticut) == "total_est_pct3")] <- "poverty_percent"
+colnames(connecticut)[which(names(connecticut) == "county2")] <- "State.county"
+connecticut$State.county <- paste("CT: ", connecticut$State.county)
+as.tibble(connecticut)
+```
+
+```{r}
+# open georgia data frame
+georgia <-  read.csv(file="georgia.csv", header=TRUE, sep=",")
+colnames(georgia)[which(names(georgia) == "total_est_pct3")] <- "poverty_percent"
+colnames(georgia)[which(names(georgia) == "county2")] <- "State.county"
+georgia$State.county <- paste("GA: ", georgia$State.county)
+as.tibble(georgia)
+```
+
+```{r}
+# open hawaii data frame
+hawaii <-  read.csv(file="hawaii.csv", header=TRUE, sep=",")
+colnames(hawaii)[which(names(hawaii) == "total_est_pct3")] <- "poverty_percent"
+colnames(hawaii)[which(names(hawaii) == "county2")] <- "State.county"
+hawaii$State.county <- paste("HI: ", hawaii$State.county)
+as.tibble(hawaii)
+```
+
+```{r}
+# open iowa data frame
+iowa <-  read.csv(file="iowa.csv", header=TRUE, sep=",")
+colnames(iowa)[which(names(iowa) == "total_est_pct3")] <- "poverty_percent"
+colnames(iowa)[which(names(iowa) == "county2")] <- "State.county"
+iowa$State.county <- paste("IA: ", iowa$State.county)
+as.tibble(iowa)
+```
+
+```{r}
+# open kentucky data frame
+kentucky <-  read.csv(file="kentucky.csv", header=TRUE, sep=",")
+colnames(kentucky)[which(names(kentucky) == "total_est_pct3")] <- "poverty_percent"
+colnames(kentucky)[which(names(kentucky) == "county2")] <- "State.county"
+kentucky$State.county <- paste("KY: ", kentucky$State.county)
+as.tibble(kentucky)
+```
+
+```{r}
+# open louisiana data frame
+louis <-  read.csv(file="louis.csv", header=TRUE, sep=",")
+colnames(louis)[which(names(louis) == "total_est_pct3")] <- "poverty_percent"
+colnames(louis)[which(names(louis) == "county2")] <- "State.county"
+louis$State.county <- paste("LA: ", louis$State.county)
+as.tibble(louis)
+```
+
+```{r}
+# open michigan data frame
+michigan <-  read.csv(file="mich.csv", header=TRUE, sep=",")
+colnames(michigan)[which(names(michigan) == "total_est_pct3")] <- "poverty_percent"
+colnames(michigan)[which(names(michigan) == "county2")] <- "State.county"
+michigan$State.county <- paste("MI: ", michigan$State.county)
+as.tibble(michigan)
+```
+
+```{r}
+# open new jersey data frame
+nj <-  read.csv(file="nj.csv", header=TRUE, sep=",")
+colnames(nj)[which(names(nj) == "total_est_pct3")] <- "poverty_percent"
+colnames(nj)[which(names(nj) == "county2")] <- "State.county"
+nj$State.county <- paste("NJ: ", nj$State.county)
+as.tibble(nj)
+```
+
+```{r}
+# open new mexico data frame
+nm <-  read.csv(file="nj.csv", header=TRUE, sep=",")
+colnames(nm)[which(names(nm) == "total_est_pct3")] <- "poverty_percent"
+colnames(nm)[which(names(nm) == "county2")] <- "State.county"
+nm$State.county <- paste("NM: ", nm$State.county)
+as.tibble(nm)
+```
+
+```{r}
+# open utah data frame
+utah <-  read.csv(file="utah.csv", header=TRUE, sep=",")
+colnames(utah)[which(names(utah) == "total_est_pct3")] <- "poverty_percent"
+colnames(utah)[which(names(utah) == "county2")] <- "State.county"
+utah$State.county <- paste("UT: ", utah$State.county)
+as.tibble(utah)
+```
+
+```{r}
+# open washington data frame
+wash <-  read.csv(file="wash.csv", header=TRUE, sep=",")
+colnames(wash)[which(names(wash) == "total_est_pct3")] <- "poverty_percent"
+colnames(wash)[which(names(wash) == "county2")] <- "State.county"
+wash$State.county <- paste("WA: ", wash$State.county)
+as.tibble(wash)
+```
+
+```{r}
+# join alaska poverty percent based on county
+# alaska1 <- merge(data, alaska, by ="State.county")
+# as.tibble(alaska1)
+```
+
+```{r}
+# join cali poverty percent based on county
+cali <- merge(cali, data, by ="State.county")
+as.tibble(cali)
+```
+
+```{r}
+# join connecticut poverty percent based on county
+connecticut <- merge(data, connecticut, by ="State.county")
+as.tibble(connecticut)
+```
+
+```{r}
+# join georgia poverty percent based on county
+georgia <- merge(data, georgia, by ="State.county")
+as.tibble(georgia)
+```
+
+```{r}
+# join hawaii poverty percent based on county
+hawaii <- merge(data, hawaii, by ="State.county")
+as.tibble(hawaii)
+```
+
+```{r}
+# join iowa poverty percent based on county
+iowa <- merge(data, iowa, by ="State.county")
+as.tibble(iowa)
+```
+
+```{r}
+# join kentucky poverty percent based on county
+kentucky <- merge(data, kentucky, by ="State.county")
+as.tibble(kentucky)
+```
+
+```{r}
+# join louisianna poverty percent based on county
+louis <- merge(data, louis, by ="State.county")
+as.tibble(louis)
+```
+
+```{r}
+# join michigan poverty percent based on county
+michigan <- merge(data, michigan, by ="State.county")
+as.tibble(michigan)
+```
+
+```{r}
+# join new jersey poverty percent based on county
+nj <- merge(data, nj, by ="State.county")
+as.tibble(nj)
+```
+
+```{r}
+# join new mexico poverty percent based on county
+nm <- merge(data, nm, by ="State.county")
+as.tibble(nm)
+```
+
+```{r}
+# join utah poverty percent based on county
+utah <- merge(data, utah, by ="State.county")
+as.tibble(utah)
+```
+
+```{r}
+# join washington poverty percent based on county
+wash <- merge(data, wash, by ="State.county")
+as.tibble(wash)
+```
+
+```{r}
+rbind(alaska, cali, connecticut, georgia, hawaii, iowa, kentucky, louis, michigan, nj, nm, utah, wash)
+```
+
+
+
+```{r}
+data$Histology.Groups <- as.character(data$Histology.Groups)
+data$Histology.Groups <- ifelse(data$Histology.Groups == '8010-8049: epithelial neoplasms, NOS' | data$Histology.Groups == '8050-8089: squamous cell neoplasms' | data$Histology.Groups == '8140-8389: adenomas and adenocarcinomas' | data$Histology.Groups == '8440-8499: cystic, mucinous and serous neoplasms', data$Histology.Groups, NA)
+as.tibble(data$Histology.Groups)
+# Histology.Groups[Histology.Groups == '8010-8049: epithelial neoplasms, NOS' | Histology.Groups == '8050-8089: squamous cell neoplasms' | Histology.Groups == '8140-8389: adenomas and adenocarcinomas' | Histology.Groups == '8440-8499: cystic, mucinous and serous neoplasms'] <- 'NA')
+data$Histology.Groups <- as.factor(data$Histology.Groups)
+as.tibble(data$Histology.Groups)
+data %>%
+  count(Histology.Groups)
+```
+
+```{r}
+# omit NA rows (should get rid of 16,269 rows becuase we dont want most of the histology groups)
 data <- na.omit(data)
 as.tibble(data) 
 ```
@@ -130,34 +355,16 @@ legend("bottomright", legend = paste("Survivor Curve", roc(predictor = logistic_
 
 ```{r}
 # test independent set
-logistic_regression_predict_ovary <- predict(logistic_regression, newovary = test_classifier_log)
+lr_pred <- predict(logistic_regression, newdata=test_classification)
 
 # confusion matrix
-cm <- confusionMatrix(logistic_regression_predict_ovary, reference = test_classifier_log$status)
-```
-
-```{r}
-# print presence-absence confusion matrix
-# general format will change input below
-conf <- cmx(logistic_regression_predict_ovary, threshold = 0.3, which.model = 1, na.rm = FALSE)
-```
-
-```{r}
-# force confusion matrix input from logistic regression results
-conf[[1]] <- 138
-conf[[2]] <- 2
-conf[[3]] <- 42
-conf[[4]] <- 9
-```
-
-```{r}
-# view confusion matrix
-conf
+cm_lr <- table(pred = lr_pred, true = test_classification$Five.Year.Survival)
+cm_lr
 ```
 
 ```{r}
 # pcc results
-pcc(conf, st.dev=TRUE)
+pcc(cm_lr, st.dev=TRUE)
 ```
 
 ###### Lasso Model on Ovary Data
@@ -187,10 +394,11 @@ x_test <- model.matrix(Five.Year.Survival ~., test_classification)
 
 # predict class, type=”class”
 lasso_prob <- predict(cv.out, newx = x_test, s=lambda_1se, type="response")
-
+lasso_prob
 # translate probabilities to predictions
 lasso_predict <- rep("No", nrow(test_classification))
 lasso_predict[lasso_prob>.5] <- "Yes"
+
 ```
 
 ```{r}
